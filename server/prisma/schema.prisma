@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Funcionario {
+  id           Int         @id @default(autoincrement())
+  nome         String
+  email        String      @unique
+  departamento String
+  ativos       Ativo[]
+  historico    Historico[] // Rastro de auditoria
+}
+
+
+
+model Ativo {
+  id            Int         @id @default(autoincrement())
+  nome          String
+  tipo          String
+  serialNumber  String      @unique
+  status        String      @default("Disponível")
+  preco         Float       @default(0) // <--- NOVO CAMPO
+  dataAquisicao DateTime    @default(now())
+  
+  funcionarioId Int?
+  funcionario   Funcionario? @relation(fields: [funcionarioId], references: [id])
+  
+  historico     Historico[] // Rastro de auditoria
+}
+
+// NOVA TABELA: LOG DE AUDITORIA
+model Historico {
+  id            Int      @id @default(autoincrement())
+  acao          String   // "ATRIBUIÇÃO", "DEVOLUÇÃO", "CADASTRO"
+  detalhes      String?  // Texto livre para explicar (opcional)
+  data          DateTime @default(now())
+  
+  ativoId       Int
+  ativo         Ativo    @relation(fields: [ativoId], references: [id], onDelete: Cascade)
+  
+  funcionarioId Int?     // Pode ser nulo (se foi devolvido ao estoque)
+  funcionario   Funcionario? @relation(fields: [funcionarioId], references: [id])
+}
+
+// Adicione isso no final do arquivo
+model Usuario {
+  id    Int    @id @default(autoincrement())
+  nome  String
+  email String @unique
+  senha String // A senha será guardada criptografada
+}
+

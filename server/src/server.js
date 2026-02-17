@@ -1,0 +1,137 @@
+const express = require('express');
+const cors = require('cors');
+const { PrismaClient } = require('@prisma/client');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+
+const app = express();
+const prisma = new PrismaClient();
+const PORT = 3000;
+const SECRET_KEY = "segredo-super-secreto-do-assettrack"; // Em produção, isso vai no .env
+
+app.use(cors());
+app.use(express.json());
+
+// Rota de Teste
+app.get('/', (req, res) => res.json({ message: "API AssetTrack v3.0 (Security) 🚀" }));
+
+// ========================================================
+// AUTENTICAÇÃO
+// ========================================================
+
+// ROTA DE SETUP (Rode uma vez para criar o admin)
+app.post('/setup', async (req, res) => {
+    // Verifica se já existe algum usuário
+    const count = await prisma.usuario.count();
+    if (count > 0) return res.status(400).json({ error: "Setup já realizado." });
+
+    // Cria o Admin
+    const senhaHash = await bcrypt.hash("123456", 10); // Senha padrão
+    const admin = await prisma.usuario.create({
+        data: { nome: "Administrador", email: "admin@assettrack.com", senha: senhaHash }
+    });
+    res.json({ message: "Admin criado! Login: admin@assettrack.com / Senha: 123456" });
+});
+
+// LOGIN
+app.post('/login', async (req, res) => {
+    const { email, senha } = req.body;
+    
+    // 1. Busca usuário
+    const usuario = await prisma.usuario.findUnique({ where: { email } });
+    if (!usuario) return res.status(401).json({ error: "Credenciais inválidas." });
+
+    // 2. Verifica senha
+    const senhaValida = await bcrypt.compare(senha, usuario.senha);
+    if (!senhaValida) return res.status(401).json({ error: "Credenciais inválidas." });
+
+    // 3. Gera Token
+    const token = jwt.sign({ id: usuario.id, nome: usuario.nome }, SECRET_KEY, { expiresIn: '8h' });
+    
+    res.json({ token, usuario: { nome: usuario.nome, email: usuario.email } });
+});
+
+// Middleware de Proteção (O Porteiro)
+// Vamos usar nas rotas sensíveis, mas por enquanto deixarei opcional para facilitar seu teste
+// No futuro, você adicionaria `authenticateToken` antes das funções das rotas abaixo.
+
+// ========================================================
+// ROTAS DE NEGÓCIO (Mantidas iguais)
+// ========================================================
+
+app.get('/funcionarios', async (req, res) => {
+    const funcionarios = await prisma.funcionario.findMany({ include: { ativos: true }, orderBy: { nome: 'asc' } });
+    res.json(funcionarios);
+});
+
+app.post('/funcionarios', async (req, res) => {
+    try {
+        const novo = await prisma.funcionario.create({ data: req.body });
+        res.status(201).json(novo);
+    } catch (e) { res.status(400).json({ error: "Erro ao criar." }); }
+});
+
+app.put('/funcionarios/:id', async (req, res) => {
+    try {
+        const atualizado = await prisma.funcionario.update({ where: { id: Number(req.params.id) }, data: req.body });
+        res.json(atualizado);
+    } catch (e) { res.status(400).json({ error: "Erro." }); }
+});
+
+app.delete('/funcionarios/:id', async (req, res) => {
+    try {
+        await prisma.ativo.updateMany({ where: { funcionarioId: Number(req.params.id) }, data: { funcionarioId: null, status: "Disponível" } });
+        await prisma.funcionario.delete({ where: { id: Number(req.params.id) } });
+        res.json({ message: "Excluído" });
+    } catch (e) { res.status(400).json({ error: "Erro." }); }
+});
+
+app.get('/ativos', async (req, res) => {
+    const ativos = await prisma.ativo.findMany({ include: { funcionario: true }, orderBy: { id: 'desc' } });
+    res.json(ativos);
+});
+
+app.get('/ativos/:id/historico', async (req, res) => {
+    const logs = await prisma.historico.findMany({ where: { ativoId: Number(req.params.id) }, include: { funcionario: true }, orderBy: { data: 'desc' } });
+    res.json(logs);
+});
+
+app.post('/ativos', async (req, res) => {
+    try {
+        const { nome, tipo, serialNumber, preco } = req.body;
+        const novo = await prisma.ativo.create({ data: { nome, tipo, serialNumber, preco: Number(preco) || 0 } });
+        await prisma.historico.create({ data: { acao: "CADASTRO", detalhes: `Valor: R$ ${novo.preco}`, ativoId: novo.id } });
+        res.status(201).json(novo);
+    } catch (e) { res.status(400).json({ error: "Erro." }); }
+});
+
+app.put('/ativos/:id', async (req, res) => {
+    try {
+        const { nome, tipo, serialNumber, preco } = req.body;
+        const atualizado = await prisma.ativo.update({ where: { id: Number(req.params.id) }, data: { nome, tipo, serialNumber, preco: Number(preco) || 0 } });
+        res.json(atualizado);
+    } catch (e) { res.status(400).json({ error: "Erro." }); }
+});
+
+app.delete('/ativos/:id', async (req, res) => {
+    try { await prisma.ativo.delete({ where: { id: Number(req.params.id) } }); res.json({ message: "Excluído" }); } catch (e) { res.status(400).json({ error: "Erro." }); }
+});
+
+app.patch('/ativos/:id/atribuir', async (req, res) => {
+    try {
+        await prisma.ativo.update({ where: { id: Number(req.params.id) }, data: { funcionarioId: Number(req.body.funcionarioId), status: "Em Uso" } });
+        await prisma.historico.create({ data: { acao: "ATRIBUIÇÃO", detalhes: "Entregue ao colaborador", ativoId: Number(req.params.id), funcionarioId: Number(req.body.funcionarioId) } });
+        res.json({ ok: true });
+    } catch (e) { res.status(400).json({ error: "Erro." }); }
+});
+
+app.patch('/ativos/:id/devolver', async (req, res) => {
+    try {
+        const old = await prisma.ativo.findUnique({ where: { id: Number(req.params.id) } });
+        await prisma.ativo.update({ where: { id: Number(req.params.id) }, data: { funcionarioId: null, status: "Disponível" } });
+        await prisma.historico.create({ data: { acao: "DEVOLUÇÃO", detalhes: "Devolvido ao estoque", ativoId: Number(req.params.id), funcionarioId: old.funcionarioId } });
+        res.json({ ok: true });
+    } catch (e) { res.status(400).json({ error: "Erro." }); }
+});
+
+app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
