@@ -28,16 +28,23 @@ app.post('/setup', async (req, res) => {
     // Cria o Admin
     const senhaHash = await bcrypt.hash("060118", 10); // Senha padrão
     // Localize essa parte no seu server.js
-const admin = await prisma.usuario.upsert({
-  where: { email: 'fredson.sousawpp@wpp.com' }, // Coloque o email que VOCÊ QUER usar
-  update: {
-    senha: await bcrypt.hash('060118', 10), // Coloque a senha que VOCÊ QUER
-  },
-  create: {
-    nome: 'Fredson',
-    email: 'fredson.sousawpp@wpp.com', // O mesmo email aqui
-    senha: await bcrypt.hash('060118', 10), // A mesma senha aqui
-  },
+app.post('/setup', async (req, res) => {
+  try {
+    const admin = await prisma.usuario.upsert({
+      where: { email: 'fredson.sousa@wpp.com' }, // O email do seu print
+      update: {
+        senha: await bcrypt.hash('060118', 10),
+      },
+      create: {
+        nome: 'Fredson',
+        email: 'fredson.sousa@wpp.com',
+        senha: await bcrypt.hash('060118', 10),
+      },
+    });
+    res.json({ message: "Admin atualizado com sucesso!" });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 });
 
