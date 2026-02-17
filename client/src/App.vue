@@ -45,7 +45,7 @@ const idFuncionarioEmEdicao = ref(null);
 const fazerLogin = async () => {
   loginErro.value = '';
   try {
-    const res = await axios.post('https://asset-track-api.onrender.comlogin', loginForm.value);
+    const res = await axios.post('https://asset-track-api.onrender.com/login', loginForm.value);
     usuarioLogado.value = res.data.usuario;
     localStorage.setItem('assetToken', res.data.token); 
     buscarDados();
