@@ -22,21 +22,22 @@ app.get('/', (req, res) => res.json({ message: "API AssetTrack v3.0 (Security) 
 // ROTA DE SETUP (Rode uma vez para criar o admin)
 app.post('/setup', async (req, res) => {
   try {
-    // 1. Limpa o banco para evitar conflitos de email
+    // 1. Removemos a trava que dizia "if (usuario) return..."
+    // Isso garante que o comando SEMPRE execute a limpeza abaixo
+    
     await prisma.usuario.deleteMany({}); 
 
-    // 2. Cria o seu usu√°rio oficial
     const admin = await prisma.usuario.create({
       data: {
         nome: 'Fredson',
         email: 'fredson.sousa@wpp.com',
-        senha: await bcrypt.hash('060118', 10), // Escolha sua senha aqui
+        senha: await bcrypt.hash('060118', 10), // Defina sua senha aqui
       },
     });
 
-    res.json({ message: "ACESSO RESTAURADO", email: admin.email });
+    res.json({ message: "ACESSO RESTAURADO COM SUCESSO", email: admin.email });
   } catch (e) {
-    res.status(500).json({ error: "Erro no reset: " + e.message });
+    res.status(500).json({ error: "Falha no reset: " + e.message });
   }
 });
 
