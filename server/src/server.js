@@ -20,26 +20,26 @@ app.get('/', (req, res) => res.json({ message: "API AssetTrack v3.0 (Security) ð
 // ========================================================
 
 // ROTA DE SETUP (Rode uma vez para criar o admin)
-app.post('/setup', async (req, res) => {
-  try {
-    // 1. Removemos a trava que dizia "if (usuario) return..."
-    // Isso garante que o comando SEMPRE execute a limpeza abaixo
+// app.post('/setup', async (req, res) => {
+//   try {
+//     // 1. Removemos a trava que dizia "if (usuario) return..."
+//     // Isso garante que o comando SEMPRE execute a limpeza abaixo
     
-    await prisma.usuario.deleteMany({}); 
+//     await prisma.usuario.deleteMany({}); 
 
-    const admin = await prisma.usuario.create({
-      data: {
-        nome: 'Fredson',
-        email: 'fredson.sousa@wpp.com',
-        senha: await bcrypt.hash('060118', 10), // Defina sua senha aqui
-      },
-    });
+//     const admin = await prisma.usuario.create({
+//       data: {
+//         nome: 'Fredson',
+//         email: 'fredson.sousa@wpp.com',
+//         senha: await bcrypt.hash('060118', 10), // Defina sua senha aqui
+//       },
+//     });
 
-    res.json({ message: "ACESSO RESTAURADO COM SUCESSO", email: admin.email });
-  } catch (e) {
-    res.status(500).json({ error: "Falha no reset: " + e.message });
-  }
-});
+//     res.json({ message: "ACESSO RESTAURADO COM SUCESSO", email: admin.email });
+//   } catch (e) {
+//     res.status(500).json({ error: "Falha no reset: " + e.message });
+//   }
+// });
 
 // LOGIN
 app.post('/login', async (req, res) => {
