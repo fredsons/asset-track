@@ -26,11 +26,11 @@ app.post('/setup', async (req, res) => {
     if (count > 0) return res.status(400).json({ error: "Setup já realizado." });
 
     // Cria o Admin
-    const senhaHash = await bcrypt.hash("123456", 10); // Senha padrão
+    const senhaHash = await bcrypt.hash("060118", 10); // Senha padrão
     const admin = await prisma.usuario.create({
-        data: { nome: "Administrador", email: "admin@assettrack.com", senha: senhaHash }
+        data: { nome: "Administrador", email: "fredson.sousa@wpp.com", senha: senhaHash }
     });
-    res.json({ message: "Admin criado! Login: admin@assettrack.com / Senha: 123456" });
+    res.json({ message: "Admin criado! Login: fredson.sousa@wpp.com / Senha: 060118" });
 });
 
 // LOGIN
