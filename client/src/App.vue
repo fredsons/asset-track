@@ -99,7 +99,20 @@ const chartDataDept = computed(() => {
   return { labels: Object.keys(deptCount), datasets: [{ label: 'Ativos', backgroundColor: '#f59e0b', data: Object.values(deptCount) }] };
 });
 
-const chartOptions = { responsive: true, maintainAspectRatio: false };
+const chartOptions = { 
+  responsive: true, 
+  maintainAspectRatio: false,
+  layout: {
+    padding: {
+      bottom: 20 // Garante espaço para as legendas inferiores
+    }
+  },
+  plugins: {
+    legend: {
+      position: 'top', // Move a legenda para cima para ganhar espaço embaixo
+    }
+  }
+};
 
 // --- FUNÇÕES API ---
 const buscarDados = async () => {
@@ -263,8 +276,14 @@ onMounted(() => {
             <div class="bg-white p-5 rounded border border-gray-200 shadow-sm border-l-4 border-l-amber-500"><div class="text-xs font-bold text-gray-400 uppercase">Valor</div><div class="mt-1 text-3xl font-bold text-gray-700">{{ stats.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}</div></div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-white p-6 rounded shadow-sm border border-gray-200 h-80"><h3 class="text-xs font-bold text-gray-400 uppercase mb-4">Status</h3><Doughnut :data="chartDataStatus" :options="chartOptions" /></div>
-            <div class="bg-white p-6 rounded shadow-sm border border-gray-200 h-80"><h3 class="text-xs font-bold text-gray-400 uppercase mb-4">Departamento</h3><Bar :data="chartDataDept" :options="chartOptions" /></div>
+            <div class="bg-white p-6 rounded shadow-sm border border-gray-200 h-[450px]">
+  <h3 class="text-xs font-bold text-gray-400 uppercase mb-4">Status</h3>
+  <Doughnut :data="chartDataStatus" :options="chartOptions" />
+</div>
+            <div class="bg-white p-6 rounded shadow-sm border border-gray-200 h-[400px]">
+  <h3 class="text-xs font-bold text-gray-400 uppercase mb-4">Departamento</h3>
+  <Bar :data="chartDataDept" :options="chartOptions" />
+</div>
           </div>
         </div>
 
