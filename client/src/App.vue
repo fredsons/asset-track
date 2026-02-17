@@ -77,6 +77,24 @@ const fazerLogin = async () => {
   }
 };
 
+const exibindoPerfil = ref(false);
+const formPerfil = ref({ novoNome: '', novoEmail: '', novaSenha: '', senhaConfirmacao: '' });
+
+const atualizarPerfil = async () => {
+  try {
+    const res = await axios.put(`${API_URL}/usuario/perfil`, {
+      emailAtual: usuarioLogado.value.email,
+      ...formPerfil.value
+    });
+    usuarioLogado.value = res.data.usuario;
+    exibindoPerfil.value = false;
+    formPerfil.value = { novoNome: '', novoEmail: '', novaSenha: '', senhaConfirmacao: '' };
+    Toast.fire({ icon: 'success', title: 'Perfil atualizado!' });
+  } catch (e) {
+    Swal.fire('Erro', e.response?.data?.error || 'Erro ao atualizar', 'error');
+  }
+};
+
 const fazerLogout = () => {
   usuarioLogado.value = null;
   localStorage.removeItem("assetToken");

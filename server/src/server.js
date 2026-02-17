@@ -51,6 +51,36 @@ app.post('/login', async (req, res) => {
     res.json({ token, usuario: { nome: usuario.nome, email: usuario.email } });
 });
 
+// ATUALIZAR USUÁRIO (Perfil)
+app.put('/usuario/perfil', async (req, res) => {
+    const { emailAtual, novoNome, novoEmail, novaSenha, senhaConfirmacao } = req.body;
+
+    try {
+        const usuario = await prisma.usuario.findUnique({ where: { email: emailAtual } });
+        if (!usuario) return res.status(404).json({ error: "Usuário não encontrado." });
+
+        // Valida a senha atual para permitir a mudança
+        const senhaValida = await bcrypt.compare(senhaConfirmacao, usuario.senha);
+        if (!senhaValida) return res.status(401).json({ error: "Senha de confirmação incorreta." });
+
+        const dadosAtualizados = { nome: novoNome, email: novoEmail };
+
+        // Se o usuário quiser trocar a senha, criptografamos a nova
+        if (novaSenha) {
+            dadosAtualizados.senha = await bcrypt.hash(novaSenha, 10);
+        }
+
+        const atualizado = await prisma.usuario.update({
+            where: { email: emailAtual },
+            data: dadosAtualizados
+        });
+
+        res.json({ message: "Perfil atualizado com sucesso!", usuario: { nome: atualizado.nome, email: atualizado.email } });
+    } catch (e) {
+        res.status(400).json({ error: "Erro ao atualizar perfil. Email já existe?" });
+    }
+});
+
 // Middleware de Proteção (O Porteiro)
 // Vamos usar nas rotas sensíveis, mas por enquanto deixarei opcional para facilitar seu teste
 // No futuro, você adicionaria `authenticateToken` antes das funções das rotas abaixo.
