@@ -61,7 +61,12 @@ app.put('/usuario/perfil', async (req, res) => {
     const senhaValida = await bcrypt.compare(senhaConfirmacao, usuario.senha);
     if (!senhaValida) return res.status(401).json({ error: "Senha de confirmação incorreta." });
 
-    const dadosAtualizados = { nome: novoNome, email: novoEmail };
+    // Prepara os dados. Só altera o e-mail se ele for realmente diferente do atual
+    const dadosAtualizados = { nome: novoNome };
+    if (novoEmail && novoEmail !== emailAtual) {
+      dadosAtualizados.email = novoEmail;
+    }
+    
     if (novaSenha) {
       dadosAtualizados.senha = await bcrypt.hash(novaSenha, 10);
     }
@@ -73,7 +78,8 @@ app.put('/usuario/perfil', async (req, res) => {
 
     res.json({ message: "Perfil atualizado!", usuario: { nome: atualizado.nome, email: atualizado.email } });
   } catch (e) {
-    res.status(400).json({ error: "Erro ao atualizar. Email já existe?" });
+    console.error(e);
+    res.status(400).json({ error: "Este e-mail já está sendo usado por outro usuário." });
   }
 });
 
