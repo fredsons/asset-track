@@ -92,17 +92,52 @@ const abrirPerfil = () => {
 };
 
 const atualizarPerfil = async () => {
+  // 1. Validação preventiva no Frontend
+  if (!usuarioLogado.value || !usuarioLogado.value.email) {
+    Swal.fire('Erro', 'Sessão expirada ou inválida. Por favor, saia e entre novamente.', 'error');
+    return;
+  }
+
+  // 2. Verifica se a senha de confirmação foi preenchida
+  if (!formPerfil.value.senhaConfirmacao) {
+    Swal.fire('Atenção', 'Você precisa digitar sua senha atual para confirmar as alterações.', 'warning');
+    return;
+  }
+
   try {
     const res = await axios.put(`${API_URL}/usuario/perfil`, {
-      emailAtual: usuarioLogado.value.email,
-      ...formPerfil.value
+      emailAtual: usuarioLogado.value.email, // Garante o identificador do banco
+      novoNome: formPerfil.value.novoNome,
+      novoEmail: formPerfil.value.novoEmail,
+      novaSenha: formPerfil.value.novaSenha,
+      senhaConfirmacao: formPerfil.value.senhaConfirmacao
     });
-    usuarioLogado.value = res.data.usuario;
+
+    // 3. Atualiza o estado global com os novos dados retornados pelo servidor
+    usuarioLogado.value = { 
+      ...usuarioLogado.value, 
+      nome: res.data.usuario.nome, 
+      email: res.data.usuario.email 
+    };
+
+    // 4. Limpa o formulário e fecha o modal
     exibindoPerfil.value = false;
-    formPerfil.value = { novoNome: '', novoEmail: '', novaSenha: '', senhaConfirmacao: '' };
-    Toast.fire({ icon: 'success', title: 'Perfil atualizado!' });
+    formPerfil.value = { 
+      novoNome: '', 
+      novoEmail: '', 
+      novaSenha: '', 
+      senhaConfirmacao: '' 
+    };
+
+    Toast.fire({ 
+      icon: 'success', 
+      title: 'Perfil atualizado com sucesso!' 
+    });
+
   } catch (e) {
-    Swal.fire('Erro', e.response?.data?.error || 'Erro ao atualizar', 'error');
+    console.error("Erro na requisição de perfil:", e);
+    const mensagemErro = e.response?.data?.error || 'Erro ao conectar com o servidor.';
+    Swal.fire('Erro ao atualizar', mensagemErro, 'error');
   }
 };
 
@@ -367,6 +402,7 @@ onMounted(() => {
   if (token) {
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
+      // Adicionamos o email explicitamente aqui
       usuarioLogado.value = { nome: payload.nome, email: payload.email };
       buscarDados();
     } catch (e) {
