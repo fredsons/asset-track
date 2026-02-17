@@ -52,34 +52,47 @@ app.post('/login', async (req, res) => {
 });
 
 // ROTA PARA ATUALIZAR PERFIL
+// ROTA DE PERFIL CORRIGIDA
 app.put('/usuario/perfil', async (req, res) => {
   const { emailAtual, novoNome, novoEmail, novaSenha, senhaConfirmacao } = req.body;
+  
   try {
+    // 1. Busca o usuário atual para validar a senha
     const usuario = await prisma.usuario.findUnique({ where: { email: emailAtual } });
     if (!usuario) return res.status(404).json({ error: "Usuário não encontrado." });
 
+    // 2. Valida a senha atual (obrigatório para segurança)
     const senhaValida = await bcrypt.compare(senhaConfirmacao, usuario.senha);
     if (!senhaValida) return res.status(401).json({ error: "Senha de confirmação incorreta." });
 
-    // Prepara os dados. Só altera o e-mail se ele for realmente diferente do atual
-    const dadosAtualizados = { nome: novoNome };
-    if (novoEmail && novoEmail !== emailAtual) {
-      dadosAtualizados.email = novoEmail;
-    }
-    
-    if (novaSenha) {
-      dadosAtualizados.senha = await bcrypt.hash(novaSenha, 10);
+    // 3. Prepara o objeto de atualização
+    const dadosParaAtualizar = {
+      nome: novoNome,
+      email: novoEmail
+    };
+
+    // 4. Se informou nova senha, faz o hash
+    if (novaSenha && novaSenha.trim() !== "") {
+      dadosParaAtualizar.senha = await bcrypt.hash(novaSenha, 10);
     }
 
-    const atualizado = await prisma.usuario.update({
+    // 5. Executa a atualização no banco
+    const usuarioAtualizado = await prisma.usuario.update({
       where: { email: emailAtual },
-      data: dadosAtualizados
+      data: dadosParaAtualizar
     });
 
-    res.json({ message: "Perfil atualizado!", usuario: { nome: atualizado.nome, email: atualizado.email } });
-  } catch (e) {
-    console.error(e);
-    res.status(400).json({ error: "Este e-mail já está sendo usado por outro usuário." });
+    res.json({ 
+      message: "Perfil atualizado!", 
+      usuario: { nome: usuarioAtualizado.nome, email: usuarioAtualizado.email } 
+    });
+
+  } catch (error) {
+    // Se o erro for P2002, significa que o novo e-mail já pertence a OUTRA pessoa
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: "Este novo e-mail já está sendo usado por outro administrador." });
+    }
+    res.status(500).json({ error: "Erro interno ao atualizar perfil." });
   }
 });
 
