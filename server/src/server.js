@@ -128,12 +128,20 @@ app.post('/funcionarios', async (req, res) => {
 });
 
 app.put('/funcionarios/:id', async (req, res) => {
-    try {
-        const atualizado = await prisma.funcionario.update({ where: { id: Number(req.params.id) }, data: req.body });
-        res.json(atualizado);
-    } catch (e) { res.status(400).json({ error: "Erro." }); }
+  const { id } = req.params;
+  const { nome, email, departamento } = req.body;
+  try {
+    const atualizado = await prisma.funcionario.update({
+      // O Number(id) é fundamental se o seu ID for numérico no banco
+      where: { id: Number(id) }, 
+      data: { nome, email, departamento },
+    });
+    res.json(atualizado);
+  } catch (e) {
+    // Se o erro for de e-mail duplicado, o Prisma lança uma exceção aqui
+    res.status(400).json({ error: "Erro ao atualizar: E-mail já cadastrado ou ID inválido." });
+  }
 });
-
 app.delete('/funcionarios/:id', async (req, res) => {
     try {
         await prisma.ativo.updateMany({ where: { funcionarioId: Number(req.params.id) }, data: { funcionarioId: null, status: "Disponível" } });
