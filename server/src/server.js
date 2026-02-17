@@ -57,42 +57,45 @@ app.put('/usuario/perfil', async (req, res) => {
   const { emailAtual, novoNome, novoEmail, novaSenha, senhaConfirmacao } = req.body;
   
   try {
-    // 1. Busca o usuário atual para validar a senha
+    // 1. Localiza o usuário pela chave única (email atual)
     const usuario = await prisma.usuario.findUnique({ where: { email: emailAtual } });
     if (!usuario) return res.status(404).json({ error: "Usuário não encontrado." });
 
-    // 2. Valida a senha atual (obrigatório para segurança)
+    // 2. Valida se a senha de confirmação bate com a do banco
     const senhaValida = await bcrypt.compare(senhaConfirmacao, usuario.senha);
     if (!senhaValida) return res.status(401).json({ error: "Senha de confirmação incorreta." });
 
-    // 3. Prepara o objeto de atualização
-    const dadosParaAtualizar = {
+    // 3. Se o e-mail mudou, verifica se já existe em OUTRO registro
+    if (novoEmail !== emailAtual) {
+      const emailEmUso = await prisma.usuario.findUnique({ where: { email: novoEmail } });
+      if (emailEmUso) return res.status(400).json({ error: "Este novo e-mail já pertence a outra conta." });
+    }
+
+    // 4. Monta o objeto de dados de forma segura
+    const dadosUpdate = {
       nome: novoNome,
       email: novoEmail
     };
 
-    // 4. Se informou nova senha, faz o hash
+    // 5. Criptografa a nova senha apenas se ela foi preenchida
     if (novaSenha && novaSenha.trim() !== "") {
-      dadosParaAtualizar.senha = await bcrypt.hash(novaSenha, 10);
+      dadosUpdate.senha = await bcrypt.hash(novaSenha, 10);
     }
 
-    // 5. Executa a atualização no banco
-    const usuarioAtualizado = await prisma.usuario.update({
-      where: { email: emailAtual },
-      data: dadosParaAtualizar
+    // 6. Atualiza usando o ID (que é imutável) para evitar erros de chave
+    const atualizado = await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: dadosUpdate
     });
 
     res.json({ 
       message: "Perfil atualizado!", 
-      usuario: { nome: usuarioAtualizado.nome, email: usuarioAtualizado.email } 
+      usuario: { nome: atualizado.nome, email: atualizado.email } 
     });
 
-  } catch (error) {
-    // Se o erro for P2002, significa que o novo e-mail já pertence a OUTRA pessoa
-    if (error.code === 'P2002') {
-      return res.status(400).json({ error: "Este novo e-mail já está sendo usado por outro administrador." });
-    }
-    res.status(500).json({ error: "Erro interno ao atualizar perfil." });
+  } catch (err) {
+    console.error("Erro no perfil:", err);
+    res.status(500).json({ error: "Erro interno: verifique os logs do servidor." });
   }
 });
 
