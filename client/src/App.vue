@@ -45,7 +45,7 @@ const idFuncionarioEmEdicao = ref(null);
 const fazerLogin = async () => {
   loginErro.value = '';
   try {
-    const res = await axios.post('http://localhost:3000/login', loginForm.value);
+    const res = await axios.post('https://asset-track-api.onrender.comlogin', loginForm.value);
     usuarioLogado.value = res.data.usuario;
     localStorage.setItem('assetToken', res.data.token); 
     buscarDados();
@@ -105,8 +105,8 @@ const chartOptions = { responsive: true, maintainAspectRatio: false };
 const buscarDados = async () => {
   try {
     const [resAtivos, resFunc] = await Promise.all([ 
-      axios.get('http://localhost:3000/ativos'), 
-      axios.get('http://localhost:3000/funcionarios') 
+      axios.get('https://asset-track-api.onrender.com/ativos'), 
+      axios.get('https://asset-track-api.onrender.com/funcionarios') 
     ]);
     ativos.value = resAtivos.data;
     funcionarios.value = resFunc.data;
@@ -119,7 +119,7 @@ const buscarDados = async () => {
 
 const verHistorico = async (ativo) => {
   try {
-    const res = await axios.get(`http://localhost:3000/ativos/${ativo.id}/historico`);
+    const res = await axios.get(`https://asset-track-api.onrender.com/ativos/${ativo.id}/historico`);
     if (res.data.length === 0) { Toast.fire({icon:'info', title:'Sem histórico'}); return; }
     
     const html = res.data.map(log => {
@@ -147,7 +147,7 @@ const gerenciarAtivo = async (ativo) => {
       cancelButtonText: 'Cancelar'
     });
     if (res.isConfirmed) {
-      await axios.patch(`http://localhost:3000/ativos/${ativo.id}/devolver`);
+      await axios.patch(`https://asset-track-api.onrender.com/ativos/${ativo.id}/devolver`);
       buscarDados(); Toast.fire({ icon: 'success', title: 'Devolvido!' });
     }
     return;
@@ -165,7 +165,7 @@ const gerenciarAtivo = async (ativo) => {
   });
   
   if (fid) {
-    await axios.patch(`http://localhost:3000/ativos/${ativo.id}/atribuir`, { funcionarioId: Number(fid) });
+    await axios.patch(`https://asset-track-api.onrender.com/ativos/${ativo.id}/atribuir`, { funcionarioId: Number(fid) });
     buscarDados(); Toast.fire({ icon: 'success', title: 'Atribuído!' });
   }
 };
@@ -185,22 +185,22 @@ const confirmarExclusao = async (callback) => {
 
 // CRUD GENÉRICO
 const salvarAtivo = async () => {
-  if (idAtivoEmEdicao.value) await axios.put(`http://localhost:3000/ativos/${idAtivoEmEdicao.value}`, formAtivo.value);
-  else await axios.post('http://localhost:3000/ativos', formAtivo.value);
+  if (idAtivoEmEdicao.value) await axios.put(`https://asset-track-api.onrender.com/ativos/${idAtivoEmEdicao.value}`, formAtivo.value);
+  else await axios.post('https://asset-track-api.onrender.com/ativos', formAtivo.value);
   cancelarEdicaoAtivo(); buscarDados(); Toast.fire({ icon: 'success', title: 'Salvo!' });
 };
 const salvarFuncionario = async () => {
-  if (idFuncionarioEmEdicao.value) await axios.put(`http://localhost:3000/funcionarios/${idFuncionarioEmEdicao.value}`, formFuncionario.value);
-  else await axios.post('http://localhost:3000/funcionarios', formFuncionario.value);
+  if (idFuncionarioEmEdicao.value) await axios.put(`https://asset-track-api.onrender.com/funcionarios/${idFuncionarioEmEdicao.value}`, formFuncionario.value);
+  else await axios.post('https://asset-track-api.onrender.com/funcionarios', formFuncionario.value);
   formFuncionario.value = { nome: '', email: '', departamento: 'TI' }; idFuncionarioEmEdicao.value = null; buscarDados(); Toast.fire({ icon: 'success', title: 'Salvo!' });
 };
 
 const clonarAtivo = (a) => { formAtivo.value = { nome: a.nome, tipo: a.tipo, serialNumber: '', preco: a.preco }; idAtivoEmEdicao.value = null; window.scrollTo({top:0, behavior:'smooth'}); setTimeout(()=>document.getElementById('input-serial').focus(),500); };
 const editarAtivo = (a) => { formAtivo.value = {...a}; idAtivoEmEdicao.value = a.id; window.scrollTo({top:0, behavior:'smooth'}); };
 const cancelarEdicaoAtivo = () => { formAtivo.value = {nome:'', tipo:'Notebook', serialNumber:'', preco:0}; idAtivoEmEdicao.value = null; };
-const excluirAtivo = (id) => confirmarExclusao(async () => { await axios.delete(`http://localhost:3000/ativos/${id}`); buscarDados(); });
+const excluirAtivo = (id) => confirmarExclusao(async () => { await axios.delete(`https://asset-track-api.onrender.com/ativos/${id}`); buscarDados(); });
 const editarFunc = (f) => { formFuncionario.value = {...f}; idFuncionarioEmEdicao.value = f.id; window.scrollTo({top:0, behavior:'smooth'}); };
-const excluirFunc = (id) => confirmarExclusao(async () => { await axios.delete(`http://localhost:3000/funcionarios/${id}`); buscarDados(); });
+const excluirFunc = (id) => confirmarExclusao(async () => { await axios.delete(`https://asset-track-api.onrender.com/funcionarios/${id}`); buscarDados(); });
 
 // CHECK LOGIN INICIAL
 onMounted(() => {
